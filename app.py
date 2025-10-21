@@ -5,6 +5,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import plotly.express as px
+import plotly.io as pio
 import io, zipfile
 from datetime import datetime
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration, VideoTransformerBase
@@ -15,6 +16,13 @@ st.set_page_config(page_title="Reconocimiento en Vivo", page_icon="🎥", layout
 MODEL_PATH = "keras_model.h5"
 LABELS_PATH = "labels.txt"
 DB_PATH = "database.db"
+
+# ---------------------------
+# CONFIGURACIÓN DE KALEIDO
+# ---------------------------
+pio.kaleido.scope.default_format = "png"
+pio.kaleido.scope.default_width = 1000
+pio.kaleido.scope.default_height = 600
 
 # ---- CARGA DE MODELO Y LABELS ----
 @st.cache_resource
@@ -209,7 +217,8 @@ elif page == "Analítica":
     with zipfile.ZipFile(zip_buffer, "w") as zf:
         for fig, name in zip(figuras, nombres):
             try:
-                img_bytes = fig.to_image(format="png", engine="kaleido", width=1000, height=600)
+                # Exportando con kaleido seguro
+                img_bytes = fig.to_image(format="png")
                 zf.writestr(name, img_bytes)
             except Exception as e:
                 st.warning(f"No se pudo generar PNG para {name}: {e}")
