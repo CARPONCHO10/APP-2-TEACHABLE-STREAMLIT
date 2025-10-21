@@ -6,11 +6,11 @@ import pandas as pd
 import sqlite3
 import plotly.express as px
 import plotly.io as pio
-import kaleido  # <--- Import necesario para que Streamlit Cloud reconozca Kaleido
 import io, zipfile
 from datetime import datetime
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration, VideoTransformerBase
 from tensorflow.keras.models import load_model
+from PIL import Image
 
 st.set_page_config(page_title="Reconocimiento en Vivo", page_icon="🎥", layout="wide")
 
@@ -200,11 +200,10 @@ elif page == "Analítica":
     st.divider()
     st.subheader("⬇️ Exportaciones")
 
-    # CSV siempre funcional
     csv_bytes = df.to_csv(index=False).encode("utf-8")
     st.download_button("Descargar CSV", csv_bytes, "predicciones.csv", "text/csv")
 
-    # Exportación segura a PNG con Kaleido en Streamlit Cloud
+    # ✅ Exportación a PNG compatible con Streamlit Cloud
     figuras = [fig1, fig2, fig3, fig4, fig5]
     nombres = ["grafica_1.png", "grafica_2.png", "grafica_3.png", "grafica_4.png", "grafica_5.png"]
 
@@ -212,9 +211,14 @@ elif page == "Analítica":
     with zipfile.ZipFile(zip_buffer, "w") as zf:
         for fig, name in zip(figuras, nombres):
             try:
-                # Exportar con Kaleido sin depender de Chrome
-                img_bytes = fig.to_image(format="png", engine="kaleido", width=1000, height=600)
-                zf.writestr(name, img_bytes)
+                # Generar imagen en formato SVG
+                svg_bytes = fig.to_image(format="svg")
+                # Convertir SVG a PNG con PIL
+                img = Image.open(io.BytesIO(svg_bytes))
+                png_bytes_io = io.BytesIO()
+                img.save(png_bytes_io, format="PNG")
+                png_bytes_io.seek(0)
+                zf.writestr(name, png_bytes_io.read())
             except Exception as e:
                 st.warning(f"No se pudo generar PNG para {name}: {e}")
 
