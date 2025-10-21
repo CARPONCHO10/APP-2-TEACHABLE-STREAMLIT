@@ -8,4 +8,4 @@ plotly==5.21.0
 aiortc==1.10.0
 av==13.0.0
 Pillow==10.4.0
-kaleido==1.1.0
+kaleido
