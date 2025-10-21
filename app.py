@@ -200,10 +200,11 @@ elif page == "Analítica":
     st.divider()
     st.subheader("⬇️ Exportaciones")
 
+    # CSV siempre funcional
     csv_bytes = df.to_csv(index=False).encode("utf-8")
     st.download_button("Descargar CSV", csv_bytes, "predicciones.csv", "text/csv")
 
-    # ✅ Exportación a PNG con Kaleido (seguro en Streamlit Cloud)
+    # Exportación segura a PNG con Kaleido en Streamlit Cloud
     figuras = [fig1, fig2, fig3, fig4, fig5]
     nombres = ["grafica_1.png", "grafica_2.png", "grafica_3.png", "grafica_4.png", "grafica_5.png"]
 
@@ -211,6 +212,7 @@ elif page == "Analítica":
     with zipfile.ZipFile(zip_buffer, "w") as zf:
         for fig, name in zip(figuras, nombres):
             try:
+                # Exportar con Kaleido sin depender de Chrome
                 img_bytes = fig.to_image(format="png", engine="kaleido", width=1000, height=600)
                 zf.writestr(name, img_bytes)
             except Exception as e:
