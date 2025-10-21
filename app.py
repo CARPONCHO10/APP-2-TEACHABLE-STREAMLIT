@@ -9,7 +9,6 @@ import io, zipfile
 from datetime import datetime
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration, VideoTransformerBase
 from tensorflow.keras.models import load_model
-from PIL import Image
 
 st.set_page_config(page_title="Reconocimiento en Vivo", page_icon="🎥", layout="wide")
 
@@ -199,32 +198,27 @@ elif page == "Analítica":
     st.divider()
     st.subheader("⬇️ Exportaciones")
 
+    # CSV
     csv_bytes = df.to_csv(index=False).encode("utf-8")
     st.download_button("Descargar CSV", csv_bytes, "predicciones.csv", "text/csv")
 
-    # Exportación a PNG compatible con Streamlit Cloud
+    # HTML interactivo (evita Kaleido)
     figuras = [fig1, fig2, fig3, fig4, fig5]
-    nombres = ["grafica_1.png", "grafica_2.png", "grafica_3.png", "grafica_4.png", "grafica_5.png"]
+    nombres = ["grafica_1.html", "grafica_2.html", "grafica_3.html", "grafica_4.html", "grafica_5.html"]
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zf:
         for fig, name in zip(figuras, nombres):
             try:
-                # Generar SVG
-                svg_bytes = fig.to_image(format="svg")
-                # Convertir SVG a PNG con PIL
-                img = Image.open(io.BytesIO(svg_bytes))
-                png_bytes_io = io.BytesIO()
-                img.save(png_bytes_io, format="PNG")
-                png_bytes_io.seek(0)
-                zf.writestr(name, png_bytes_io.read())
+                html_bytes = fig.to_html(full_html=False).encode("utf-8")
+                zf.writestr(name, html_bytes)
             except Exception as e:
-                st.warning(f"No se pudo generar PNG para {name}: {e}")
+                st.warning(f"No se pudo generar HTML para {name}: {e}")
 
     zip_buffer.seek(0)
     st.download_button(
-        "📦 Descargar ZIP con gráficas",
+        "📦 Descargar ZIP con gráficas (HTML)",
         data=zip_buffer,
-        file_name="graficas.zip",
+        file_name="graficas_html.zip",
         mime="application/zip"
     )
