@@ -9,6 +9,8 @@ import io, zipfile
 from datetime import datetime
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration, VideoTransformerBase
 from tensorflow.keras.models import load_model
+from PIL import Image
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Reconocimiento en Vivo", page_icon="🎥", layout="wide")
 
@@ -178,7 +180,7 @@ elif page == "Analítica":
     df['confidence'] = df['confidence'].astype(float)
     df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
 
-    # --- GRÁFICAS ---
+    # --- GRÁFICAS INTERACTIVAS ---
     fig1 = px.histogram(df, x="label", title="Frecuencia de clases detectadas")
     fig2 = px.line(df, x="timestamp", y="confidence", title="Nivel de confianza a lo largo del tiempo")
     fig3 = px.box(df, x="label", y="confidence", title="Distribución de confianza por clase")
@@ -194,7 +196,7 @@ elif page == "Analítica":
     st.plotly_chart(fig4, use_container_width=True)
     st.plotly_chart(fig5, use_container_width=True)
 
-    # --- EXPORTACIONES ---
+    # --- EXPORTACIONES CSV + PNG con Matplotlib ---
     st.divider()
     st.subheader("⬇️ Exportaciones")
 
@@ -202,23 +204,80 @@ elif page == "Analítica":
     csv_bytes = df.to_csv(index=False).encode("utf-8")
     st.download_button("Descargar CSV", csv_bytes, "predicciones.csv", "text/csv")
 
-    # HTML interactivo (evita Kaleido)
-    figuras = [fig1, fig2, fig3, fig4, fig5]
-    nombres = ["grafica_1.html", "grafica_2.html", "grafica_3.html", "grafica_4.html", "grafica_5.html"]
-
+    # PNG con Matplotlib en ZIP
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zf:
-        for fig, name in zip(figuras, nombres):
-            try:
-                html_bytes = fig.to_html(full_html=False).encode("utf-8")
-                zf.writestr(name, html_bytes)
-            except Exception as e:
-                st.warning(f"No se pudo generar HTML para {name}: {e}")
+        try:
+            # Gráfica 1: Histograma
+            fig, ax = plt.subplots()
+            df['label'].value_counts().plot(kind='bar', ax=ax, color='skyblue')
+            ax.set_title("Frecuencia de clases detectadas")
+            ax.set_xlabel("Clase")
+            ax.set_ylabel("Cantidad")
+            png_bytes = io.BytesIO()
+            fig.savefig(png_bytes, format="png", bbox_inches='tight')
+            png_bytes.seek(0)
+            zf.writestr("grafica_1.png", png_bytes.read())
+            plt.close(fig)
+
+            # Gráfica 2: Línea confianza
+            fig, ax = plt.subplots()
+            df.plot(x='timestamp', y='confidence', kind='line', ax=ax, color='orange')
+            ax.set_title("Nivel de confianza a lo largo del tiempo")
+            ax.set_ylabel("Confianza")
+            ax.set_xlabel("Timestamp")
+            png_bytes = io.BytesIO()
+            fig.savefig(png_bytes, format="png", bbox_inches='tight')
+            png_bytes.seek(0)
+            zf.writestr("grafica_2.png", png_bytes.read())
+            plt.close(fig)
+
+            # Gráfica 3: Boxplot
+            fig, ax = plt.subplots()
+            df.boxplot(column='confidence', by='label', ax=ax)
+            ax.set_title("Distribución de confianza por clase")
+            ax.set_ylabel("Confianza")
+            ax.set_xlabel("Clase")
+            plt.suptitle("")
+            png_bytes = io.BytesIO()
+            fig.savefig(png_bytes, format="png", bbox_inches='tight')
+            png_bytes.seek(0)
+            zf.writestr("grafica_3.png", png_bytes.read())
+            plt.close(fig)
+
+            # Gráfica 4: Pie
+            fig, ax = plt.subplots()
+            df['source'].value_counts().plot(kind='pie', ax=ax, autopct='%1.1f%%')
+            ax.set_ylabel("")
+            ax.set_title("Origen de las predicciones")
+            png_bytes = io.BytesIO()
+            fig.savefig(png_bytes, format="png", bbox_inches='tight')
+            png_bytes.seek(0)
+            zf.writestr("grafica_4.png", png_bytes.read())
+            plt.close(fig)
+
+            # Gráfica 5: Scatter
+            fig, ax = plt.subplots()
+            for lbl in df['label'].unique():
+                subset = df[df['label'] == lbl]
+                ax.scatter(subset['timestamp'], subset['confidence'], label=lbl)
+            ax.set_title("Confianza por predicción")
+            ax.set_ylabel("Confianza")
+            ax.set_xlabel("Timestamp")
+            ax.legend()
+            png_bytes = io.BytesIO()
+            fig.savefig(png_bytes, format="png", bbox_inches='tight')
+            png_bytes.seek(0)
+            zf.writestr("grafica_5.png", png_bytes.read())
+            plt.close(fig)
+
+        except Exception as e:
+            st.warning(f"No se pudo generar PNG: {e}")
 
     zip_buffer.seek(0)
     st.download_button(
-        "📦 Descargar ZIP con gráficas (HTML)",
+        "📦 Descargar ZIP con gráficas PNG",
         data=zip_buffer,
-        file_name="graficas_html.zip",
+        file_name="graficas_png.zip",
         mime="application/zip"
     )
