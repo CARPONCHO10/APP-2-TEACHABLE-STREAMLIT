@@ -5,7 +5,6 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import plotly.express as px
-import plotly.io as pio
 import io, zipfile
 from datetime import datetime
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration, VideoTransformerBase
@@ -203,7 +202,7 @@ elif page == "Analítica":
     csv_bytes = df.to_csv(index=False).encode("utf-8")
     st.download_button("Descargar CSV", csv_bytes, "predicciones.csv", "text/csv")
 
-    # ✅ Exportación a PNG compatible con Streamlit Cloud
+    # Exportación a PNG compatible con Streamlit Cloud
     figuras = [fig1, fig2, fig3, fig4, fig5]
     nombres = ["grafica_1.png", "grafica_2.png", "grafica_3.png", "grafica_4.png", "grafica_5.png"]
 
@@ -211,7 +210,7 @@ elif page == "Analítica":
     with zipfile.ZipFile(zip_buffer, "w") as zf:
         for fig, name in zip(figuras, nombres):
             try:
-                # Generar imagen en formato SVG
+                # Generar SVG
                 svg_bytes = fig.to_image(format="svg")
                 # Convertir SVG a PNG con PIL
                 img = Image.open(io.BytesIO(svg_bytes))
